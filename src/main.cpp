@@ -499,13 +499,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             g_state.closing = false;
         return 0;
     case WM_DESTROY:
-        // Save window position and size before destroying
         {
             WINDOWPLACEMENT wp = {};
             wp.length = sizeof(WINDOWPLACEMENT);
             if (GetWindowPlacement(hwnd, &wp))
             {
-                // Always save the normal position, even if maximized or minimized
                 RECT rect = wp.rcNormalPosition;
                 g_state.windowX = rect.left;
                 g_state.windowY = rect.top;

@@ -133,18 +133,14 @@ void LoadWindowSettings()
         DWORD size = sizeof(x);
         if (RegQueryValueExW(hKey, WINDOW_X_VALUE, nullptr, nullptr, reinterpret_cast<LPBYTE>(&x), &size) == ERROR_SUCCESS)
         {
-            // Cast DWORD to int - on Windows, this preserves negative coordinates correctly
             g_state.windowX = static_cast<int>(x);
         }
-
         DWORD y = 0;
         size = sizeof(y);
         if (RegQueryValueExW(hKey, WINDOW_Y_VALUE, nullptr, nullptr, reinterpret_cast<LPBYTE>(&y), &size) == ERROR_SUCCESS)
         {
-            // Cast DWORD to int - on Windows, this preserves negative coordinates correctly
             g_state.windowY = static_cast<int>(y);
         }
-
         DWORD width = 0;
         size = sizeof(width);
         if (RegQueryValueExW(hKey, WINDOW_WIDTH_VALUE, nullptr, nullptr, reinterpret_cast<LPBYTE>(&width), &size) == ERROR_SUCCESS)
@@ -154,7 +150,6 @@ void LoadWindowSettings()
                 g_state.windowWidth = static_cast<int>(width);
             }
         }
-
         DWORD height = 0;
         size = sizeof(height);
         if (RegQueryValueExW(hKey, WINDOW_HEIGHT_VALUE, nullptr, nullptr, reinterpret_cast<LPBYTE>(&height), &size) == ERROR_SUCCESS)
@@ -167,13 +162,10 @@ void LoadWindowSettings()
 
         RegCloseKey(hKey);
     }
-
-    // Validate that the window position is visible on at least one monitor
     RECT rc = {g_state.windowX, g_state.windowY, g_state.windowX + g_state.windowWidth, g_state.windowY + g_state.windowHeight};
     HMONITOR hMonitor = MonitorFromRect(&rc, MONITOR_DEFAULTTONULL);
     if (!hMonitor)
     {
-        // Window would be off-screen, reset to default
         g_state.windowX = CW_USEDEFAULT;
         g_state.windowY = CW_USEDEFAULT;
     }
@@ -184,7 +176,6 @@ void SaveWindowSettings()
     HKEY hKey;
     if (RegCreateKeyExW(HKEY_CURRENT_USER, SETTINGS_KEY, 0, nullptr, 0, KEY_WRITE, nullptr, &hKey, nullptr) == ERROR_SUCCESS)
     {
-        // Store coordinates as REG_DWORD - static_cast preserves bit pattern for negative values
         DWORD x = static_cast<DWORD>(g_state.windowX);
         RegSetValueExW(hKey, WINDOW_X_VALUE, 0, REG_DWORD,
                        reinterpret_cast<const BYTE *>(&x),
