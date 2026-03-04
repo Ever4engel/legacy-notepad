@@ -40,6 +40,55 @@ static HBRUSH GetDialogEditBrush()
     return brush;
 }
 
+static bool DrawDarkDialogButton(const DRAWITEMSTRUCT *dis)
+{
+    if (!IsDarkMode() || !dis || dis->CtlType != ODT_BUTTON)
+        return false;
+
+    COLORREF bgColor = (dis->itemState & ODS_SELECTED) ? RGB(70, 70, 70) : RGB(56, 56, 56);
+    COLORREF borderColor = RGB(95, 95, 95);
+    COLORREF textColor = (dis->itemState & ODS_DISABLED) ? RGB(140, 140, 140) : RGB(240, 240, 240);
+
+    HBRUSH bgBrush = CreateSolidBrush(bgColor);
+    FillRect(dis->hDC, &dis->rcItem, bgBrush);
+    DeleteObject(bgBrush);
+
+    HBRUSH borderBrush = CreateSolidBrush(borderColor);
+    FrameRect(dis->hDC, &dis->rcItem, borderBrush);
+    DeleteObject(borderBrush);
+
+    wchar_t text[128] = {};
+    GetWindowTextW(dis->hwndItem, text, 128);
+    RECT textRect = dis->rcItem;
+    SetBkMode(dis->hDC, TRANSPARENT);
+    SetTextColor(dis->hDC, textColor);
+    DrawTextW(dis->hDC, text, -1, &textRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+    if (dis->itemState & ODS_FOCUS)
+    {
+        RECT focusRect = dis->rcItem;
+        InflateRect(&focusRect, -4, -4);
+        DrawFocusRect(dis->hDC, &focusRect);
+    }
+    return true;
+}
+
+static void MakeDialogButtonsOwnerDraw(HWND hDlg)
+{
+    if (!IsDarkMode())
+        return;
+    wchar_t cls[16] = {};
+    for (HWND h = GetWindow(hDlg, GW_CHILD); h; h = GetWindow(h, GW_HWNDNEXT))
+    {
+        if (GetClassNameW(h, cls, 16) > 0 && lstrcmpiW(cls, L"Button") == 0)
+        {
+            LONG_PTR style = GetWindowLongPtrW(h, GWL_STYLE);
+            SetWindowLongPtrW(h, GWL_STYLE, (style & ~BS_TYPEMASK) | BS_OWNERDRAW);
+            InvalidateRect(h, nullptr, TRUE);
+        }
+    }
+}
+
 static void ApplyDialogDarkMode(HWND hDlg)
 {
     if (!IsDarkMode())
@@ -48,6 +97,7 @@ static void ApplyDialogDarkMode(HWND hDlg)
     SetWindowTheme(hDlg, L"DarkMode_Explorer", nullptr);
     for (HWND h = GetWindow(hDlg, GW_CHILD); h; h = GetWindow(h, GW_HWNDNEXT))
         SetWindowTheme(h, L"DarkMode_Explorer", nullptr);
+    MakeDialogButtonsOwnerDraw(hDlg);
 }
 
 static INT_PTR HandleDialogDarkColors(UINT msg, WPARAM wParam)
@@ -71,7 +121,7 @@ static INT_PTR HandleDialogDarkColors(UINT msg, WPARAM wParam)
     return 0;
 }
 
-static INT_PTR CALLBACK TransparencyDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM)
+static INT_PTR CALLBACK TransparencyDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
@@ -108,6 +158,10 @@ static INT_PTR CALLBACK TransparencyDlgProc(HWND hDlg, UINT msg, WPARAM wParam, 
             return colorResult;
         break;
     }
+    case WM_DRAWITEM:
+        if (DrawDarkDialogButton(reinterpret_cast<const DRAWITEMSTRUCT *>(lParam)))
+            return TRUE;
+        break;
     case WM_CLOSE:
         EndDialog(hDlg, IDCANCEL);
         return TRUE;
@@ -257,6 +311,10 @@ INT_PTR CALLBACK FindDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
             return colorResult;
         return reinterpret_cast<INT_PTR>(GetSysColorBrush(COLOR_BTNFACE));
     }
+    case WM_DRAWITEM:
+        if (DrawDarkDialogButton(reinterpret_cast<const DRAWITEMSTRUCT *>(lParam)))
+            return TRUE;
+        break;
     case WM_CLOSE:
         DestroyWindow(hDlg);
         g_hwndFindDlg = nullptr;
@@ -356,6 +414,10 @@ INT_PTR CALLBACK GotoDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARAM lParam)
             return colorResult;
         break;
     }
+    case WM_DRAWITEM:
+        if (DrawDarkDialogButton(reinterpret_cast<const DRAWITEMSTRUCT *>(lParam)))
+            return TRUE;
+        break;
     case WM_COMMAND:
         if (LOWORD(wParam) == IDOK)
         {
