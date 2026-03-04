@@ -26,6 +26,26 @@
 #include <shellapi.h>
 #include <vector>
 
+static HICON LoadCustomIcon(const wchar_t *path)
+{
+    HICON icon = static_cast<HICON>(LoadImageW(nullptr, path, IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE));
+    if (icon)
+        return icon;
+
+    HICON largeIcon = nullptr;
+    HICON smallIcon = nullptr;
+    if (ExtractIconExW(path, 0, &largeIcon, &smallIcon, 1) == 0)
+        return nullptr;
+
+    if (largeIcon)
+    {
+        if (smallIcon)
+            DestroyIcon(smallIcon);
+        return largeIcon;
+    }
+    return smallIcon;
+}
+
 bool ConfirmDiscard()
 {
     if (!g_state.modified)
@@ -256,13 +276,13 @@ void ViewChangeIcon()
     OPENFILENAMEW ofn = {};
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = g_hwndMain;
-    ofn.lpstrFilter = L"Icon Files (*.ico)\0*.ico\0All Files (*.*)\0*.*\0";
+    ofn.lpstrFilter = L"Icon Sources (*.ico;*.exe;*.dll;*.icl;*.mun)\0*.ico;*.exe;*.dll;*.icl;*.mun\0Icon Files (*.ico)\0*.ico\0Icon Libraries (*.exe;*.dll;*.icl;*.mun)\0*.exe;*.dll;*.icl;*.mun\0All Files (*.*)\0*.*\0";
     ofn.lpstrFile = path;
     ofn.nMaxFile = MAX_PATH;
     ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
     if (GetOpenFileNameW(&ofn))
     {
-        HICON hNewIcon = static_cast<HICON>(LoadImageW(nullptr, path, IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE));
+        HICON hNewIcon = LoadCustomIcon(path);
         if (hNewIcon)
         {
             if (g_hCustomIcon && g_hCustomIcon != hNewIcon)

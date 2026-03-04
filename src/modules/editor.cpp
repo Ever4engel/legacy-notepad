@@ -20,7 +20,9 @@
 #include "ui.h"
 #include "background.h"
 #include "resource.h"
+#include "lang/lang.h"
 #include <richedit.h>
+#include <windowsx.h>
 #include <algorithm>
 
 struct StreamCookie
@@ -283,6 +285,47 @@ LRESULT CALLBACK EditorSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
             return 0;
         }
         break;
+    }
+    case WM_CONTEXTMENU:
+    {
+        if (reinterpret_cast<HWND>(wParam) && reinterpret_cast<HWND>(wParam) != hwnd)
+            break;
+
+        POINT pt = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+        if (pt.x == -1 && pt.y == -1)
+        {
+            GetCaretPos(&pt);
+            ClientToScreen(hwnd, &pt);
+        }
+
+        DWORD selStart = 0, selEnd = 0;
+        SendMessageW(hwnd, EM_GETSEL, reinterpret_cast<WPARAM>(&selStart), reinterpret_cast<LPARAM>(&selEnd));
+        bool hasSelection = selStart != selEnd;
+        bool canUndo = SendMessageW(hwnd, EM_CANUNDO, 0, 0) != 0;
+        bool canPaste = IsClipboardFormatAvailable(CF_UNICODETEXT) || IsClipboardFormatAvailable(CF_TEXT);
+
+        const auto &lang = GetLangStrings();
+        HMENU hMenu = CreatePopupMenu();
+        AppendMenuW(hMenu, MF_STRING, IDM_EDIT_UNDO, lang.menuUndo.c_str());
+        AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
+        AppendMenuW(hMenu, MF_STRING, IDM_EDIT_CUT, lang.menuCut.c_str());
+        AppendMenuW(hMenu, MF_STRING, IDM_EDIT_COPY, lang.menuCopy.c_str());
+        AppendMenuW(hMenu, MF_STRING, IDM_EDIT_PASTE, lang.menuPaste.c_str());
+        AppendMenuW(hMenu, MF_STRING, IDM_EDIT_DELETE, lang.menuDelete.c_str());
+        AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
+        AppendMenuW(hMenu, MF_STRING, IDM_EDIT_SELECTALL, lang.menuSelectAll.c_str());
+
+        EnableMenuItem(hMenu, IDM_EDIT_UNDO, MF_BYCOMMAND | (canUndo ? MF_ENABLED : MF_GRAYED));
+        EnableMenuItem(hMenu, IDM_EDIT_CUT, MF_BYCOMMAND | (hasSelection ? MF_ENABLED : MF_GRAYED));
+        EnableMenuItem(hMenu, IDM_EDIT_COPY, MF_BYCOMMAND | (hasSelection ? MF_ENABLED : MF_GRAYED));
+        EnableMenuItem(hMenu, IDM_EDIT_PASTE, MF_BYCOMMAND | (canPaste ? MF_ENABLED : MF_GRAYED));
+        EnableMenuItem(hMenu, IDM_EDIT_DELETE, MF_BYCOMMAND | (hasSelection ? MF_ENABLED : MF_GRAYED));
+
+        int cmd = TrackPopupMenu(hMenu, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.x, pt.y, 0, g_hwndMain, nullptr);
+        DestroyMenu(hMenu);
+        if (cmd)
+            SendMessageW(g_hwndMain, WM_COMMAND, MAKEWPARAM(cmd, 0), 0);
+        return 0;
     }
     }
     return CallWindowProcW(g_origEditorProc, hwnd, msg, wParam, lParam);

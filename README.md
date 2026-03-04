@@ -17,7 +17,7 @@ A lightweight, 25x fast, Windows notepad alternative built with C++17 and Win32 
 - **Backgrounds**: optional image with tile/stretch/fit/fill/anchor modes and opacity control. (known issues)
 - **Always on top**: window pinning support.
 - **Printing**: print and page setup dialogs.
-- **Customizable icon**: change the application icon to any .ico file, including classic Notepad icons.
+- **Customizable icon**: change the application icon from `.ico` files or icon libraries such as `.exe`, `.dll`, `.icl`, and `.mun`.
 
 ## Requisites
 
@@ -110,6 +110,7 @@ MIT License - see [LICENSE](LICENSE).
 
 - Windows-only (Win32 API + GDI+). Use Wine/Proton at your own risk.
 - Background image modes may vary slightly across DPI/scaling settings.
+- Unsigned Windows binaries can occasionally trigger heuristic antivirus detections; always verify published SHA-256 hashes.
 
 ## Queries
 
