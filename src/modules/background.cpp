@@ -18,7 +18,30 @@
 #include "theme.h"
 #include "resource.h"
 #include <commdlg.h>
+#include <uxtheme.h>
 #include <algorithm>
+
+static HBRUSH GetBackgroundDialogBrush()
+{
+    static HBRUSH brush = CreateSolidBrush(RGB(32, 32, 32));
+    return brush;
+}
+
+static HBRUSH GetBackgroundDialogEditBrush()
+{
+    static HBRUSH brush = CreateSolidBrush(RGB(45, 45, 45));
+    return brush;
+}
+
+static void ApplyBackgroundDialogDarkMode(HWND hDlg)
+{
+    if (!IsDarkMode())
+        return;
+    SetTitleBarDark(hDlg, TRUE);
+    SetWindowTheme(hDlg, L"DarkMode_Explorer", nullptr);
+    for (HWND h = GetWindow(hDlg, GW_CHILD); h; h = GetWindow(h, GW_HWNDNEXT))
+        SetWindowTheme(h, L"DarkMode_Explorer", nullptr);
+}
 
 void LoadBackgroundImage(const std::wstring &path)
 {
@@ -257,6 +280,7 @@ static INT_PTR CALLBACK OpacityDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARA
     {
     case WM_INITDIALOG:
     {
+        ApplyBackgroundDialogDarkMode(hDlg);
         HFONT hFont = reinterpret_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT));
         CreateWindowExW(0, L"STATIC", L"Opacity (0-100%):", WS_CHILD | WS_VISIBLE, 10, 15, 110, 20, hDlg, nullptr, nullptr, nullptr);
         hEdit = CreateWindowExW(WS_EX_CLIENTEDGE, L"EDIT", L"", WS_CHILD | WS_VISIBLE | ES_NUMBER, 125, 12, 60, 22, hDlg, reinterpret_cast<HMENU>(1001), nullptr, nullptr);
@@ -272,6 +296,26 @@ static INT_PTR CALLBACK OpacityDlgProc(HWND hDlg, UINT msg, WPARAM wParam, LPARA
         SetFocus(hEdit);
         return FALSE;
     }
+    case WM_CTLCOLOREDIT:
+        if (IsDarkMode())
+        {
+            HDC hdc = reinterpret_cast<HDC>(wParam);
+            SetTextColor(hdc, RGB(240, 240, 240));
+            SetBkColor(hdc, RGB(45, 45, 45));
+            return reinterpret_cast<INT_PTR>(GetBackgroundDialogEditBrush());
+        }
+        break;
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+        if (IsDarkMode())
+        {
+            HDC hdc = reinterpret_cast<HDC>(wParam);
+            SetTextColor(hdc, RGB(240, 240, 240));
+            SetBkColor(hdc, RGB(32, 32, 32));
+            return reinterpret_cast<INT_PTR>(GetBackgroundDialogBrush());
+        }
+        break;
     case WM_COMMAND:
         if (LOWORD(wParam) == IDOK)
         {
