@@ -42,12 +42,15 @@ jobs:
           }
 
       - name: Sign binaries
-        if: ${{ secrets.WINDOWS_SIGNING_CERT != '' && secrets.WINDOWS_SIGNING_PASSWORD != '' }}
         shell: powershell
         env:
           WINDOWS_SIGNING_CERT: ${{ secrets.WINDOWS_SIGNING_CERT }}
           WINDOWS_SIGNING_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PASSWORD }}
         run: |
+          if (-not $env:WINDOWS_SIGNING_CERT -or -not $env:WINDOWS_SIGNING_PASSWORD) {
+            Write-Host "Signing skipped: signing secrets are not configured for this run"
+            exit 0
+          }
           [IO.File]::WriteAllBytes('codesign.pfx', [Convert]::FromBase64String($env:WINDOWS_SIGNING_CERT))
           $signtool = (Get-Command signtool -ErrorAction SilentlyContinue).Source
           if (-not $signtool) {
