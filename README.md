@@ -106,6 +106,10 @@ CMakeLists.txt
 
 MIT License - see [LICENSE](LICENSE).
 
+## Known issues
+
+- Windows Defender flags legacy-notepad-x86.exe; see issue #26: https://github.com/ForLoopCodes/legacy-notepad/issues/26
+
 ## Notes
 
 - Windows-only (Win32 API + GDI+). Use Wine/Proton at your own risk.
